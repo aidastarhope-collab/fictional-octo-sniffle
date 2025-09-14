@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Birthday Shop — Letters & Big Present</title>
+  <style>
+    :root{
+      --card: rgba(255,255,255,0.85);
+      --shadow: 0 10px 40px rgba(22, 24, 45, 0.12);
+      --text: #1f2340;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:linear-gradient(180deg,#f7f7ff,#fff); color:var(--text)}
+    header{position:sticky; top:0; z-index:10; backdrop-filter: blur(10px); background: rgba(255,255,255,0.6); border-bottom:1px solid rgba(0,0,0,0.05);}
+    header .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(0,0,0,0.07); border-radius:999px; background:#fff; box-shadow: var(--shadow); font-weight:700;}
+    .container{max-width:960px;margin:0 auto;padding:24px}
+    h1{margin:0;font-size:20px}
+    .card{background: var(--card); border:1px solid rgba(0,0,0,0.06); border-radius: 18px; box-shadow: var(--shadow); padding:24px; backdrop-filter: blur(10px);}
+    .grid{display:grid; gap:16px}
+    @media(min-width:800px){.grid.cols-2{grid-template-columns:1fr 1fr} .grid.cols-3{grid-template-columns:repeat(3,1fr)}}
+    .shop-item{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px; border-radius:14px; background:#fff; border:1px solid rgba(0,0,0,0.06)}
+    .price{font-weight:800}
+    .btn{appearance:none; border:0; cursor:pointer; color:#fff; font-weight:700; background: linear-gradient(135deg, #6d5dfc, #9d8bff); padding:10px 16px; border-radius:12px; box-shadow: var(--shadow);}
+    .btn.ghost{background:#fff; color:var(--text); border:1px solid rgba(0,0,0,0.08)}
+    .muted{color:#5a6185}
+    .backlinks{display:flex; gap:8px; margin:8px 0 16px}
+    dialog{border:0; border-radius:18px; padding:0; box-shadow: var(--shadow); width:min(720px, 94vw)}
+    dialog::backdrop{background: rgba(0,0,20,0.35)}
+    .modal{padding:22px}
+    .modal h3{margin:0 0 8px}
+    .modal .body{white-space:pre-wrap; color:#333}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Shop — letters & big present</h1>
+      <div class="pill" title="Your coins">🪙 Coins: <small id="coinCount">0</small></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="backlinks">
+      <a class="btn ghost" href="index.html">← Home</a>
+      <a class="btn ghost" href="game.html">Play a minigame →</a>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 6px">Letters 💌</h2>
+      <p class="muted" style="margin-top:0">Buy a letter and then open it to read. You keep purchased items.</p>
+      <div class="grid" id="shopLetters" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2 style="margin:0 0 6px">Big Present 🎁</h2>
+      <p class="muted" style="margin-top:0">Save up and unlock the main surprise.</p>
+      <div class="grid" id="shopGift" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <dialog id="modal">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+        <h3 id="modalTitle">Letter</h3>
+        <button class="btn ghost" id="closeModal">Close</button>
+      </div>
+      <div id="modalBody" class="body"></div>
+    </div>
+  </dialog>
+
+<script>
+(() => {
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const store = {
+    get coins(){ return parseInt(localStorage.getItem('ldg_coins')||'0',10) },
+    set coins(v){ localStorage.setItem('ldg_coins', String(v)); updateCoins() },
+    get purchases(){ return JSON.parse(localStorage.getItem('ldg_purchases')||'{}') },
+    set purchases(v){ localStorage.setItem('ldg_purchases', JSON.stringify(v)) },
+  };
+  function updateCoins(){ $('#coinCount').textContent = store.coins }
+  function addCoins(n){ store.coins = Math.max(0, store.coins + n) }
+  updateCoins();
+
+  // Replace the letter texts below with your real letters (copied from your old file)
+  const letters = [
+    {id:'letter1', name:'Letter • Sunbeam', price:20, body:`Hey you ☀️
+
+Happy Birthday! Consider this a warm little sunbeam straight to your screen. I hope today wraps you in all the cozy things — good music, silly laughs, and at least one perfect snack.
+
+Thank you for being you.`},
+    {id:'letter2', name:'Letter • Starlight', price:35, body:`Hi star traveler ✨
+
+If we had a telescope that could look across distance and awkward timing, it would still only catch a fraction of how much I appreciate you. Here's to more late-night talks and tiny adventures.`},
+    {id:'letter3', name:'Letter • Midnight', price:25, body:`It's late and quiet — my favorite time to think of you. Happy Birthday again. I can't wait for our next call.`},
+  ];
+  const big = {id:'biggift', name:'Big Present', price:80, body:`Surprise incoming! This unlocks your big present. (In the real version, this could reveal a link, a video, a digital artwork, a voucher… anything you want!)`};
+
+  function renderList(rootSel, items){
+    const root = $(rootSel); root.innerHTML='';
+    const owned = store.purchases;
+    items.forEach(it=>{
+      const have = !!owned[it.id];
+      const row = document.createElement('div'); row.className='shop-item';
+      row.innerHTML = `
+        <div>
+          <div style="font-weight:800">${it.name}</div>
+          <div class="muted">${it.id==='biggift'?'The main surprise.':'A sweet note to read.'}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px">
+          <span class="price">${have? 'Owned' : '🪙 '+it.price}</span>
+          <button class="btn ${have?'':'ghost'}" data-id="${it.id}">${have? (it.id==='biggift'?'Open':'Read') : 'Buy'}</button>
+        </div>`;
+      const btn = row.querySelector('button');
+      btn.addEventListener('click', ()=>{
+        const owned = store.purchases; const have = !!owned[it.id];
+        if(!have){
+          if(store.coins < it.price){ btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:200}); return; }
+          store.coins = store.coins - it.price; owned[it.id]=true; store.purchases = owned;
+          renderAll();
+        }
+        openModal(it.name, it.body);
+      });
+      root.appendChild(row);
+    });
+  }
+
+  const dialog = document.getElementById('modal');
+  function openModal(title, body){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = body;
+    dialog.showModal();
+  }
+  document.getElementById('closeModal').addEventListener('click', ()=> dialog.close());
+
+  function renderAll(){
+    updateCoins();
+    renderList('#shopLetters', letters);
+    renderList('#shopGift', [big]);
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
