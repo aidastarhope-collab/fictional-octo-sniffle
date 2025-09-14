@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Happy Birthday – Little Adventure</title>
+  <style>
+    :root{
+      --bg: radial-gradient(1200px 800px at 10% -10%, #ffe5f3 0%, transparent 60%),
+            radial-gradient(1000px 600px at 110% 10%, #e9f2ff 0%, transparent 60%),
+            linear-gradient(180deg,#f7f7ff, #fff);
+      --card: rgba(255,255,255,0.7);
+      --glass: rgba(255,255,255,0.6);
+      --text: #1f2340;
+      --muted: #5a6185;
+      --accent: #6d5dfc;
+      --accent-2: #ff7ab5;
+      --success: #2ecc71;
+      --warning: #f39c12;
+      --shadow: 0 10px 40px rgba(22, 24, 45, 0.12);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text); background: var(--bg); overflow-x:hidden;
+    }
+    .container{max-width:960px;margin:0 auto;padding:24px}
+    header{
+      position:sticky; top:0; z-index:10; backdrop-filter: blur(10px);
+      background: var(--glass); border-bottom:1px solid rgba(0,0,0,0.05);
+    }
+    header .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px}
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:36px; height:36px; border-radius:50%; background: conic-gradient(from 180deg, #6d5dfc, #ff7ab5, #5ce0de, #6d5dfc); box-shadow: var(--shadow)}
+    .brand h1{font-size:18px; margin:0}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(0,0,0,0.07);
+      border-radius:999px; background:#fff; box-shadow: var(--shadow); font-weight:600;
+    }
+    .pill small{font-weight:700}
+    .view{
+      display:none; min-height: calc(100vh - 80px);
+      padding:32px 16px 64px; animation: fade .4s ease;
+    }
+    .view.active{display:block}
+    @keyframes fade{from{opacity:0; transform: translateY(8px)}to{opacity:1; transform:translateY(0)}}
+
+    .card{
+      background: var(--card); border:1px solid rgba(0,0,0,0.06);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding:24px; backdrop-filter: blur(10px);
+    }
+    .center{ display:grid; place-items:center; text-align:center }
+    h2{font-size:28px; margin:0 0 10px}
+    p{color:var(--muted); margin:8px 0}
+    .buttons{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:20px}
+    button, .btn{
+      appearance:none; border:0; cursor:pointer; text-decoration:none; color:#fff; font-weight:700;
+      background: linear-gradient(135deg, var(--accent), #9d8bff);
+      padding:12px 18px; border-radius:14px; box-shadow: var(--shadow); transition: transform .08s ease, filter .2s;
+    }
+    .btn.secondary{background: linear-gradient(135deg, #ff92c5, #ff7ab5)}
+    .btn.ghost{background:#fff; color:var(--text); border:1px solid rgba(0,0,0,0.08)}
+    button:active,.btn:active{transform: translateY(1px)}
+
+    /* Hero */
+    .hero-title{font-size:clamp(32px, 5vw, 52px); line-height:1.1; margin:10px 0}
+    .hero-sub{font-size:18px}
+    .confetti{position:fixed; inset:0; pointer-events:none; overflow:hidden}
+
+    /* Grid */
+    .grid{display:grid; gap:16px}
+    @media(min-width:800px){.grid.cols-2{grid-template-columns:1fr 1fr}}
+
+    /* Game area */
+    .statbar{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:16px}
+    .stat{
+      background:#fff; border:1px solid rgba(0,0,0,0.07); padding:10px 14px; border-radius:12px; box-shadow: var(--shadow);
+      display:inline-flex; align-items:center; gap:8px; font-weight:700
+    }
+    .tag{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:12px; background:#fff; border:1px solid rgba(0,0,0,0.07)}
+
+    /* Mini-game: Heart Clicker */
+    .game-card{position:relative; overflow:hidden}
+    #playfield{position:relative; height:360px; border-radius:14px; background:linear-gradient(180deg,#ffffff, #f6f0ff); border:1px dashed rgba(0,0,0,0.08)}
+    .heart{
+      position:absolute; width:26px; height:26px; transform: translate(-50%, -50%);
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+      transition: transform .05s ease;
+    }
+    .float{position:absolute; font-weight:800; color:#e91e63; text-shadow:0 1px 0 #fff; opacity:0; animation: pop 700ms ease forwards}
+    @keyframes pop{from{transform:translateY(0);opacity:.9}to{transform:translateY(-22px);opacity:0}}
+
+    /* Quest list */
+    .quest{display:flex; align-items:flex-start; gap:10px; padding:12px; border-radius:12px; background:#fff; border:1px solid rgba(0,0,0,0.06)}
+    .quest input{transform:translateY(3px)}
+    .quest.done{opacity:.6; text-decoration: line-through}
+
+    /* Shop */
+    .shop-item{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px; border-radius:14px; background:#fff; border:1px solid rgba(0,0,0,0.06)}
+    .price{font-weight:800}
+    .badge{padding:6px 10px; border-radius:999px; background:#eef2ff; font-weight:700}
+
+    /* Modal */
+    dialog{border:0; border-radius:18px; padding:0; box-shadow: var(--shadow); width:min(720px, 94vw)}
+    dialog::backdrop{background: rgba(0,0,20,0.35)}
+    .modal{padding:22px}
+    .modal h3{margin:0 0 8px}
+    .modal .body{white-space:pre-wrap; color:var(--muted)}
+
+    /* Footer */
+    footer{padding:28px; text-align:center; color:#7a7fa5}
+
+    /* Tiny helpers */
+    .hidden{display:none !important}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap container">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Happy Birthday, <span id="nameSpan">You</span>! 🎂</h1>
+      </div>
+      <div class="pill" title="Your coins">
+        🪙 Coins: <small id="coinCount">0</small>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Home / Start -->
+    <section id="home" class="view active center">
+      <div class="card" style="max-width:760px">
+        <p class="badge">Level 1 • Birthday Adventure</p>
+        <h2 class="hero-title">Happy Birthday! 🎉</h2>
+        <p class="hero-sub">I made you a tiny web adventure with minigames, quests, and a shop. Earn coins, unlock letters, and find your big present. No downloads needed — just play. 💌</p>
+        <div class="buttons">
+          <a class="btn" href="#game" data-nav>Start the adventure</a>
+          <a class="btn ghost" href="#shop" data-nav>Go to the shop</a>
+        </div>
+        <p style="margin-top:18px">P.S. This works best on your phone or laptop. Your progress is saved on your device.</p>
+      </div>
+    </section>
+
+    <!-- Game Hub -->
+    <section id="game" class="view">
+      <div class="grid cols-2">
+        <div class="card game-card">
+          <h2>Minigame • Heart Clicker ❤️</h2>
+          <p>Click the floating hearts as fast as you can in <b>15 seconds</b>. Each heart is worth <b>1 coin</b>.</p>
+          <div class="statbar">
+            <div class="stat">⏱️ Time: <span id="timeLeft">15</span>s</div>
+            <div class="stat">🎯 Score: <span id="score">0</span></div>
+            <button id="startBtn" class="btn">Start round</button>
+          </div>
+          <div id="playfield" aria-label="playfield"></div>
+          <p id="gameHint" class="hidden">Round finished! Your coins were added. 🔒 Hearts pause until you start again.</p>
+        </div>
+
+        <div class="card">
+          <h2>Quest Board 📜</h2>
+          <p>Complete cute little quests for bonus coins (+5 each).</p>
+          <div class="grid" id="questList"></div>
+          <div class="buttons" style="justify-content:flex-start; margin-top:16px">
+            <button class="btn ghost" id="resetBtn">Reset progress</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shop -->
+    <section id="shop" class="view">
+      <div class="card">
+        <h2>Shop 🛍️</h2>
+        <p>Spend your coins on letters (sweet notes) and your <b>big present</b>. Purchased items stay unlocked on your device.</p>
+        <div class="grid" id="shopList" style="margin-top:12px"></div>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="modal">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+        <h3 id="modalTitle">Letter</h3>
+        <button class="btn ghost" id="closeModal">Close</button>
+      </div>
+      <div id="modalBody" class="body"></div>
+    </div>
+  </dialog>
+
+  <div class="confetti" aria-hidden="true" id="confetti"></div>
+
+  <footer>
+    Made with love 💖 · <span id="footYear"></span>
+  </footer>
+
+  <script>
+    // --- Simple state & helpers ---
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const store = {
+      get coins(){ return parseInt(localStorage.getItem('ldg_coins')||'0',10) },
+      set coins(v){ localStorage.setItem('ldg_coins', String(v)); updateCoins() },
+      get name(){ return localStorage.getItem('ldg_name') || 'You' },
+      set name(v){ localStorage.setItem('ldg_name', v) },
+      get quests(){ return JSON.parse(localStorage.getItem('ldg_quests')||'{}') },
+      set quests(v){ localStorage.setItem('ldg_quests', JSON.stringify(v)) },
+      get purchases(){ return JSON.parse(localStorage.getItem('ldg_purchases')||'{}') },
+      set purchases(v){ localStorage.setItem('ldg_purchases', JSON.stringify(v)) },
+    }
+
+    function addCoins(n){ store.coins = Math.max(0, store.coins + n); pulse($('#coinCount')) }
+    function updateCoins(){ $('#coinCount').textContent = store.coins }
+    function pulse(el){ el.animate([{transform:'scale(1.0)'},{transform:'scale(1.14)'},{transform:'scale(1.0)'}],{duration:240}) }
+
+    // --- Router (hash based) ---
+    function route(){
+      const id = (location.hash || '#home').slice(1);
+      $$('.view').forEach(v=>v.classList.remove('active'));
+      const el = document.getElementById(id) || $('#home');
+      el.classList.add('active');
+    }
+    window.addEventListener('hashchange', route);
+
+    // --- Confetti (simple emoji rain) ---
+    const confettiSymbols = ['🎉','💖','🎂','✨','🎈'];
+    function spawnConfetti(){
+      const host = $('#confetti');
+      for(let i=0;i<30;i++){
+        const s = document.createElement('div');
+        s.textContent = confettiSymbols[Math.floor(Math.random()*confettiSymbols.length)];
+        const left = Math.random()*100; const dur = 4000 + Math.random()*3000; const delay = Math.random()*1200;
+        s.style.position='absolute'; s.style.left=left+'%'; s.style.top='-10%'; s.style.fontSize=(16+Math.random()*22)+'px';
+        s.animate([
+          {transform:`translateY(0) rotate(0deg)`,opacity:1},
+          {transform:`translateY(120vh) rotate(${Math.random()>0.5?'' : '-'}360deg)`,opacity:0.9}
+        ],{duration:dur, delay, iterations:1, easing:'cubic-bezier(.2,.7,.2,1)'});
+        host.appendChild(s);
+        setTimeout(()=>host.removeChild(s), dur+delay+200);
+      }
+    }
+
+    // --- Heart Clicker Game ---
+    let playing=false, time=15, timerId=null, spawnId=null, score=0;
+    const playfield = $('#playfield');
+
+    function startRound(){
+      if(playing) return;
+      playing = true; score = 0; time = 15; $('#score').textContent = '0'; $('#timeLeft').textContent = time; $('#gameHint').classList.add('hidden');
+      // clear existing hearts
+      $$('.heart', playfield).forEach(h=>h.remove());
+      timerId = setInterval(()=>{
+        time--; $('#timeLeft').textContent = time;
+        if(time<=0){ endRound() }
+      }, 1000);
+      spawnId = setInterval(spawnHeart, 500);
+    }
+
+    function endRound(){
+      playing=false; clearInterval(timerId); clearInterval(spawnId);
+      addCoins(score);
+      $('#gameHint').classList.remove('hidden');
+    }
+
+    function spawnHeart(){
+      const h = document.createElement('div');
+      h.className='heart';
+      h.innerHTML = '❤';
+      const x = 16 + Math.random() * (playfield.clientWidth - 32);
+      const y = 16 + Math.random() * (playfield.clientHeight - 32);
+      h.style.left = x + 'px'; h.style.top = y + 'px';
+      h.style.fontSize = (18 + Math.random()*14) + 'px';
+      h.addEventListener('pointerdown', ()=>{
+        if(!playing) return;
+        score++; $('#score').textContent = String(score);
+        h.remove();
+        const f = document.createElement('div'); f.className='float'; f.textContent='+1'; f.style.left=x+'px'; f.style.top=y+'px'; playfield.appendChild(f);
+        setTimeout(()=>f.remove(), 700);
+      });
+      playfield.appendChild(h);
+      // auto-remove after a while
+      setTimeout(()=>h.remove(), 1800);
+    }
+
+    $('#startBtn').addEventListener('click', startRound);
+
+    // --- Quest Board ---
+    const defaultQuests = [
+      {id:'q1', text:'Tell me three birthday wishes ✨'},
+      {id:'q2', text:'Share a random photo from your week 📸'},
+      {id:'q3', text:'Pick a date idea for us 💡'},
+      {id:'q4', text:'Send me your favorite song today 🎵'},
+      {id:'q5', text:'Write one line you like about me 📝'},
+    ];
+
+    function renderQuests(){
+      const root = $('#questList'); root.innerHTML='';
+      const state = {...defaultQuests.reduce((a,q)=> (a[q.id]=false,a),{}), ...store.quests};
+      defaultQuests.forEach(q=>{
+        const row = document.createElement('label'); row.className = 'quest' + (state[q.id]? ' done' : '');
+        row.innerHTML = `<input type="checkbox" ${state[q.id]? 'checked' : ''}/> <div>${q.text}</div>`;
+        row.querySelector('input').addEventListener('change', (e)=>{
+          const checked = e.target.checked; const cur = store.quests; cur[q.id]=checked; store.quests=cur;
+          row.classList.toggle('done', checked);
+          if(checked) addCoins(5);
+        });
+        root.appendChild(row);
+      })
+    }
+
+    // --- Shop ---
+    const items = [
+      {id:'letter1', name:'Letter • Sunbeam', price:20, type:'letter', body:`Hey you ☀️\n\nHappy Birthday! Consider this a warm little sunbeam straight to your screen. I hope today wraps you in all the cozy things — good music, silly laughs, and at least one perfect snack.\n\nThank you for being you.`},
+      {id:'letter2', name:'Letter • Starlight', price:35, type:'letter', body:`Hi star traveler ✨\n\nIf we had a telescope that could look across distance and awkward timing, it would still only catch a fraction of how much I appreciate you. Here's to more late-night talks and tiny adventures.`},
+      {id:'biggift', name:'Big Present 🎁', price:80, type:'gift', body:`Surprise incoming! This unlocks your big present. (In the real version, this could reveal a link, a video, a digital artwork, a voucher… anything you want!)`},
+    ];
+
+    function renderShop(){
+      const root = $('#shopList'); root.innerHTML='';
+      const owned = store.purchases;
+      items.forEach(it=>{
+        const row = document.createElement('div'); row.className='shop-item';
+        const have = !!owned[it.id];
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:800">${it.name}</div>
+            <div class="muted">${it.type==='letter'?'Sweet note to read.':'The main surprise.'}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px">
+            <span class="price">${have? 'Owned' : '🪙 '+it.price}</span>
+            <button class="btn ${have?'secondary':'ghost'}" data-id="${it.id}">${have? (it.type==='letter'?'Read':'Open') : 'Buy'}</button>
+          </div>`;
+        const btn = row.querySelector('button');
+        btn.addEventListener('click', ()=>{
+          const owned = store.purchases; const have = !!owned[it.id];
+          if(!have){
+            if(store.coins < it.price){ btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:200}); return; }
+            store.coins = store.coins - it.price; owned[it.id]=true; store.purchases = owned; renderShop();
+          }
+          openModal(it.name, it.body);
+        });
+        root.appendChild(row);
+      })
+    }
+
+    // --- Modal ---
+    const dialog = $('#modal');
+    function openModal(title, body){
+      $('#modalTitle').textContent = title; $('#modalBody').textContent = body; dialog.showModal();
+    }
+    $('#closeModal').addEventListener('click', ()=> dialog.close());
+
+    // --- Personalize name (optional) ---
+    function askName(){
+      if(store.name === 'You'){
+        setTimeout(()=>{
+          const n = prompt("Before we start: what should I call you?")?.trim();
+          if(n){ store.name = n; $('#nameSpan').textContent = n }
+        }, 600);
+      }
+    }
+
+    // --- Reset ---
+    $('#resetBtn').addEventListener('click', ()=>{
+      if(confirm('Reset coins, quests, and purchases?')){
+        localStorage.removeItem('ldg_coins');
+        localStorage.removeItem('ldg_quests');
+        localStorage.removeItem('ldg_purchases');
+        updateCoins(); renderQuests(); renderShop();
+      }
+    })
+
+    // --- Init ---
+    function init(){
+      route(); updateCoins(); renderQuests(); renderShop();
+      $('#nameSpan').textContent = store.name; $('#footYear').textContent = new Date().getFullYear();
+      spawnConfetti();
+      askName();
+      $$('[data-nav]').forEach(a=> a.addEventListener('click', e=>{ e.preventDefault(); location.hash = a.getAttribute('href'); }))
+    }
+    document.addEventListener('DOMContentLoaded', init);
+
+    // --- Hooks to integrate your existing files ---
+    // If you already have a minigame HTML file:
+    // 1) Copy its core JS into a function like playYourGame() and add a new button in the Game Hub to open a <dialog> or swap views.
+    // 2) When the player wins, call addCoins(N). That’s it.
+    // If you have letter HTML files, paste their text into the items[] array above.
+  </script>
+</body>
+</html>
