@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Heart Catcher — Minigame</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif;background:#182129;color:#eaf2f8}
+  header{position:sticky; top:0; z-index:10; backdrop-filter: blur(10px); background: rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.08);}
+  header .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:999px; background:rgba(0,0,0,0.3); font-weight:700;}
+  h1{margin:8px 0 0; font-size:18px}
+  a.btn, button.btn{display:inline-block;margin:8px 6px 0;padding:10px 16px;font-weight:700;border:0;border-radius:10px;background:#b4a7d6;color:#111;cursor:pointer;text-decoration:none}
+  a.btn:hover,button.btn:hover{background:#ffd966}
+  .hud{display:flex;gap:16px;justify-content:center;margin:8px 0 0;font-weight:600}
+  canvas{background:#32516d;border:2px solid #031628;margin:16px auto;display:block;max-width:90vw}
+  #nextBtn{display:none;margin:8px auto 16px}
+  .controls{margin:16px 0;padding:0 16px}
+  .controls p{margin:8px 0;font-size:14px;color:#cfd9e2}
+  .touch-controls{display:none;margin:16px 0;gap:16px;justify-content:center}
+  .touch-btn{padding:12px 20px;font-size:18px;border:0;border-radius:10px;background:#2E2E2E;color:white;font-weight:700;cursor:pointer;user-select:none}
+  .touch-btn:hover{background:#181717}
+  .touch-btn:active{transform:scale(0.95)}
+  @media (max-width: 768px) {.touch-controls{display:flex}}
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <h1>Heart Catcher — earn coins</h1>
+      </div>
+      <div class="pill">🪙 Coins: <span id="coinCount">0</span></div>
+    </div>
+  </header>
+
+  <div style="text-align:center">
+    <a class="btn" href="index.html">← Home</a>
+    <a class="btn" href="shop.html">Shop →</a>
+  </div>
+
+  <h2 style="text-align:center;margin:12px 0 0;">Collect the hearts ❤</h2>
+  <p class="controls" style="text-align:center">Catch as many hearts as you can in 30s. You earn <b>1 coin per heart</b>. Reach 50 to auto-finish the round.</p>
+
+  <canvas id="game" width="400" height="400"></canvas>
+
+  <div class="touch-controls">
+    <button class="touch-btn" id="leftBtn">⬅️ left</button>
+    <button class="touch-btn" id="rightBtn">➡️ right</button>
+  </div>
+
+  <button id="nextBtn" class="btn" onclick="window.location.href='shop.html'">Go to shop</button>
+
+<script>
+(() => {
+  // Shared storage
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const store = {
+    get coins(){ return parseInt(localStorage.getItem('ldg_coins')||'0',10) },
+    set coins(v){ localStorage.setItem('ldg_coins', String(v)); updateCoins() },
+  };
+  function addCoins(n){ store.coins = Math.max(0, store.coins + n) }
+  function updateCoins(){ $('#coinCount').textContent = store.coins }
+  updateCoins();
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const nextBtn = document.getElementById('nextBtn');
+  const leftBtn = document.getElementById('leftBtn');
+  const rightBtn = document.getElementById('rightBtn');
+
+  const BASKET_W = 60;
+  const BASKET_H = 60;
+  const player = { x: 180, y: 340, w: BASKET_W, h: BASKET_H, speed: 20 };
+
+  const basketImg = new Image();
+  basketImg.src = "basket.png";
+
+  const heartSources = ["blue-heart.png", "pink-heart.png"];
+  const heartImages = [];
+
+  let loadedCount = 0;
+  let playableCount = 0;
+  function tryStart() {
+    if (loadedCount === heartSources.length && playableCount > 0) startGame();
+    // If images fail entirely, still start after a small delay with fallback hearts
+    if (loadedCount === heartSources.length && playableCount === 0) setTimeout(startGame, 300);
+  }
+
+  heartSources.forEach(src => {
+    const img = new Image();
+    img.onload  = () => { playableCount++; loadedCount++; tryStart(); };
+    img.onerror = () => { loadedCount++; tryStart(); };
+    img.src = src;
+    heartImages.push(img);
+  });
+
+  let hearts = [];
+  let score = 0;
+  let timeLeft = 30;
+  let gameOver = false;
+  let wonByScore = false;
+
+  let heartCount = 0;
+  const maxHearts = 80;
+
+  let spawner = null;
+  let stopCheck = null;
+  let timer = null;
+
+  function startGame(){
+    timer = setInterval(()=>{
+      if(timeLeft > 0){
+        timeLeft--;
+      } else {
+        endGame(false);
+      }
+    }, 1000);
+
+    spawner = setInterval(spawnHeart, 450);
+    stopCheck = setInterval(()=>{ if(gameOver){ clearInterval(spawner); clearInterval(stopCheck); } }, 300);
+    loop();
+  }
+
+  function endGame(won){
+    if (gameOver) return;
+    gameOver = true;
+    wonByScore = won;
+    clearInterval(timer);
+    clearInterval(spawner);
+    clearInterval(stopCheck);
+    // REWARD: 1 coin per heart caught
+    addCoins(score);
+    nextBtn.style.display = 'inline-block';
+  }
+
+  function spawnHeart(){
+    if(gameOver) return;
+    if(heartCount >= maxHearts) return;
+
+    const available = heartImages.filter(i => i.complete && i.naturalWidth > 0);
+    const useImg = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : null;
+
+    hearts.push({
+      x: Math.random()* (400 - 24),
+      y: -24,
+      vy: 1.6 + Math.random()*1.4,
+      img: useImg
+    });
+
+    heartCount++;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,400,400);
+
+    if (basketImg.complete && basketImg.naturalWidth > 0) {
+      ctx.drawImage(basketImg, player.x, player.y, player.w, player.h);
+    } else {
+      ctx.fillStyle = '#ffd966';
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    hearts.forEach(h => {
+      if (h.img && h.img.complete && h.img.naturalWidth > 0) {
+        ctx.drawImage(h.img, h.x, h.y, 24, 24);
+      } else {
+        // Fallback: simple heart
+        ctx.fillStyle = '#ff7ab5';
+        ctx.beginPath();
+        const r = 6;
+        ctx.arc(h.x+8, h.y+10, r, 0, Math.PI*2);
+        ctx.arc(h.x+16, h.y+10, r, 0, Math.PI*2);
+        ctx.moveTo(h.x+22, h.y+12);
+        ctx.lineTo(h.x+12, h.y+24);
+        ctx.lineTo(h.x+2, h.y+12);
+        ctx.closePath();
+        ctx.fill();
+      }
+    });
+
+    ctx.fillStyle = '#111';
+    ctx.font = '14px Arial';
+    ctx.fillText('score: ' + score, 10, 20);
+    ctx.fillText('time: ' + timeLeft + 's', 330, 20);
+
+    if(gameOver){
+      ctx.fillStyle = '#111';
+      ctx.font = '22px Arial';
+      if(wonByScore){
+        ctx.fillText('all hearts collected!', 85, 200);
+      } else {
+        ctx.fillText('time is over!', 105, 200);
+      }
+      ctx.fillText('final score: ' + score, 135, 230);
+      ctx.fillText('coins earned: ' + score, 130, 260);
+    }
+  }
+
+  function update(){
+    if(gameOver) return;
+    hearts.forEach(h => h.y += h.vy);
+
+    hearts = hearts.filter(h => {
+      if(h.y > 424) return false;
+      const heartCx = (h.x + 12), heartCy = (h.y + 12);
+      const withinX = heartCx > player.x && heartCx < player.x + player.w;
+      const withinY = heartCy > player.y && heartCy < player.y + player.h + 10;
+      if(withinX && withinY){
+        score++;
+        return false;
+      }
+      return true;
+    });
+
+    // End early if player reaches 50
+    if (score >= 50 && !gameOver) {
+      endGame(true);
+    }
+  }
+
+  function loop(){
+    update(); draw();
+    requestAnimationFrame(loop);
+  }
+
+  function moveLeft(){
+    if(gameOver) return;
+    player.x = Math.max(0, player.x - player.speed);
+  }
+  function moveRight(){
+    if(gameOver) return;
+    player.x = Math.min(400 - player.w, player.x + player.speed);
+  }
+
+  window.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+      e.preventDefault();
+    }
+    if(e.key === 'ArrowLeft') moveLeft();
+    if(e.key === 'ArrowRight') moveRight();
+  }, { passive:false });
+
+  leftBtn.addEventListener('click', moveLeft);
+  rightBtn.addEventListener('click', moveRight);
+  leftBtn.addEventListener('touchstart', e => {e.preventDefault(); moveLeft();}, {passive:false});
+  rightBtn.addEventListener('touchstart', e => {e.preventDefault(); moveRight();}, {passive:false});
+})();
+</script>
+</body>
+</html>
