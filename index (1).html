@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Happy Birthday – Little Adventure</title>
+  <style>
+    :root{
+      --bg: radial-gradient(1200px 800px at 10% -10%, #ffe5f3 0%, transparent 60%),
+            radial-gradient(1000px 600px at 110% 10%, #e9f2ff 0%, transparent 60%),
+            linear-gradient(180deg,#f7f7ff, #fff);
+      --card: rgba(255,255,255,0.7);
+      --glass: rgba(255,255,255,0.6);
+      --text: #1f2340;
+      --muted: #5a6185;
+      --accent: #6d5dfc;
+      --accent-2: #ff7ab5;
+      --shadow: 0 10px 40px rgba(22, 24, 45, 0.12);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--text); background: var(--bg); overflow-x:hidden;}
+    .container{max-width:960px;margin:0 auto;padding:24px}
+    header{position:sticky; top:0; z-index:10; backdrop-filter: blur(10px); background: var(--glass); border-bottom:1px solid rgba(0,0,0,0.05);}
+    header .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px}
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:36px; height:36px; border-radius:50%; background: conic-gradient(from 180deg, #6d5dfc, #ff7ab5, #5ce0de, #6d5dfc); box-shadow: var(--shadow)}
+    .brand h1{font-size:18px; margin:0}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(0,0,0,0.07); border-radius:999px; background:#fff; box-shadow: var(--shadow); font-weight:700;}
+    .card{background: var(--card); border:1px solid rgba(0,0,0,0.06); border-radius: var(--radius); box-shadow: var(--shadow); padding:24px; backdrop-filter: blur(10px);}
+    .center{ display:grid; place-items:center; text-align:center }
+    h2{font-size:28px; margin:0 0 10px}
+    p{color:var(--muted); margin:8px 0}
+    .buttons{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:20px}
+    .btn{appearance:none; border:0; cursor:pointer; text-decoration:none; color:#fff; font-weight:700; background: linear-gradient(135deg, var(--accent), #9d8bff); padding:12px 18px; border-radius:14px; box-shadow: var(--shadow); transition: transform .08s ease, filter .2s;}
+    .btn.secondary{background: linear-gradient(135deg, #ff92c5, #ff7ab5)}
+    .btn.ghost{background:#fff; color:var(--text); border:1px solid rgba(0,0,0,0.08)}
+    .btn:active{transform: translateY(1px)}
+    .badge{padding:6px 10px; border-radius:999px; background:#eef2ff; font-weight:700}
+    .grid{display:grid; gap:16px}
+    @media(min-width:800px){.grid.cols-2{grid-template-columns:1fr 1fr}}
+    .quest{display:flex; align-items:flex-start; gap:10px; padding:12px; border-radius:12px; background:#fff; border:1px solid rgba(0,0,0,0.06)}
+    .quest input{transform:translateY(3px)}
+    footer{padding:28px; text-align:center; color:#7a7fa5}
+    .confetti{position:fixed; inset:0; pointer-events:none; overflow:hidden}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap container">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Happy Birthday, <span id="nameSpan">You</span>! 🎂</h1>
+      </div>
+      <div class="pill" title="Your coins">
+        🪙 Coins: <small id="coinCount">0</small>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="center">
+      <div class="card" style="max-width:760px">
+        <p class="badge">Level 1 • Birthday Adventure</p>
+        <h2 class="hero-title" style="font-size:clamp(32px, 5vw, 52px); line-height:1.1;">Happy Birthday! 🎉</h2>
+        <p>I made you a tiny web adventure with minigames, quests, and a shop. Earn coins, unlock letters, and find your big present. 💌</p>
+        <div class="buttons">
+          <a class="btn" href="game.html">Play a minigame</a>
+          <a class="btn ghost" href="shop.html">Go to the shop</a>
+        </div>
+        <p style="margin-top:18px">P.S. Your progress is saved on your device.</p>
+      </div>
+    </section>
+
+    <section style="margin-top:20px">
+      <div class="card">
+        <h2>Quest Board 📜</h2>
+        <p>Complete cute little quests for bonus coins (+5 each).</p>
+        <div class="grid" id="questList"></div>
+        <div class="buttons" style="justify-content:flex-start; margin-top:16px">
+          <button class="btn ghost" id="resetBtn">Reset progress</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="confetti" aria-hidden="true" id="confetti"></div>
+  <footer>Made with love 💖 · <span id="footYear"></span></footer>
+
+  <script>
+    // Basic helpers & shared storage keys
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const store = {
+      get coins(){ return parseInt(localStorage.getItem('ldg_coins')||'0',10) },
+      set coins(v){ localStorage.setItem('ldg_coins', String(v)); updateCoins() },
+      get name(){ return localStorage.getItem('ldg_name') || 'You' },
+      set name(v){ localStorage.setItem('ldg_name', v) },
+      get quests(){ return JSON.parse(localStorage.getItem('ldg_quests')||'{}') },
+      set quests(v){ localStorage.setItem('ldg_quests', JSON.stringify(v)) },
+      get purchases(){ return JSON.parse(localStorage.getItem('ldg_purchases')||'{}') },
+      set purchases(v){ localStorage.setItem('ldg_purchases', JSON.stringify(v)) },
+    };
+    function addCoins(n){ store.coins = Math.max(0, store.coins + n) }
+    function updateCoins(){ $('#coinCount').textContent = store.coins }
+
+    // Confetti (emoji rain)
+    const confettiSymbols = ['🎉','💖','🎂','✨','🎈'];
+    function spawnConfetti(){
+      const host = $('#confetti');
+      for(let i=0;i<24;i++){
+        const s = document.createElement('div');
+        s.textContent = confettiSymbols[Math.floor(Math.random()*confettiSymbols.length)];
+        const left = Math.random()*100; const dur = 4000 + Math.random()*3000; const delay = Math.random()*1200;
+        s.style.position='absolute'; s.style.left=left+'%'; s.style.top='-10%'; s.style.fontSize=(16+Math.random()*22)+'px';
+        s.animate([
+          {transform:`translateY(0) rotate(0deg)`,opacity:1},
+          {transform:`translateY(120vh) rotate(${Math.random()>0.5?'' : '-'}360deg)`,opacity:0.9}
+        ],{duration:dur, delay, iterations:1, easing:'cubic-bezier(.2,.7,.2,1)'});
+        host.appendChild(s);
+        setTimeout(()=>host.removeChild(s), dur+delay+200);
+      }
+    }
+
+    // Quests
+    const defaultQuests = [
+      {id:'q1', text:'Tell me three birthday wishes ✨'},
+      {id:'q2', text:'Share a random photo from your week 📸'},
+      {id:'q3', text:'Pick a date idea for us 💡'},
+      {id:'q4', text:'Send me your favorite song today 🎵'},
+      {id:'q5', text:'Write one line you like about me 📝'},
+    ];
+    function renderQuests(){
+      const root = $('#questList'); root.innerHTML='';
+      const state = {...defaultQuests.reduce((a,q)=> (a[q.id]=false,a),{}), ...store.quests};
+      defaultQuests.forEach(q=>{
+        const row = document.createElement('label'); row.className = 'quest' + (state[q.id]? ' done' : '');
+        row.innerHTML = `<input type="checkbox" ${state[q.id]? 'checked' : ''}/> <div>${q.text}</div>`;
+        row.querySelector('input').addEventListener('change', (e)=>{
+          const checked = e.target.checked; const cur = store.quests; cur[q.id]=checked; store.quests=cur;
+          row.classList.toggle('done', checked);
+          if(checked) addCoins(5);
+        });
+        root.appendChild(row);
+      })
+    }
+
+    // Reset
+    $('#resetBtn').addEventListener('click', ()=>{
+      if(confirm('Reset coins, quests, and purchases?')){
+        localStorage.removeItem('ldg_coins');
+        localStorage.removeItem('ldg_quests');
+        localStorage.removeItem('ldg_purchases');
+        updateCoins(); renderQuests();
+      }
+    });
+
+    // Init
+    function init(){
+      updateCoins(); renderQuests();
+      $('#nameSpan').textContent = store.name; $('#footYear').textContent = new Date().getFullYear();
+      spawnConfetti();
+      // Ask name once
+      if(store.name === 'You'){
+        setTimeout(()=>{
+          const n = prompt("Before we start: what should I call you?")?.trim();
+          if(n){ store.name = n; $('#nameSpan').textContent = n }
+        }, 600);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
